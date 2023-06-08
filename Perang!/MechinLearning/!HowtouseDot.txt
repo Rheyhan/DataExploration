@@ -1,0 +1,1 @@
+dot -Tps (input file name).dot -o (output file name).ps

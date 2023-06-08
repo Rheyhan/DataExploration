@@ -1,0 +1,155 @@
+---
+title: "Median Median Line"
+author: "Ajeng Bita Alfira"
+date: "2023-04-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Dataset
+
+Dataset yang akan terdiri dari dua peubah, x (persentase populasi yang hidup di bawah garis kemiskinan) dan y (persentase populasi kulit putih). Setiap amatan mewakili data pada suatu County (setingkat di atas kota dan setingkat di bawah negara bagian) di kawasan Midwest, Amerika Serikat.
+
+```{r}
+df <- ggplot2::midwest
+x <- df$percwhite  # % of white population
+y <- df$percbelowpoverty  # % of population below poverty line
+head(cbind(x, y))
+```
+
+```{r}
+plot(x, y, col = rgb(1, 0, 0, .5), pch = 16, cex = .75,
+     main = "Midwest Dataset",
+     xlab = "% of white population", ylab = "% below poverty line")
+```
+
+## Regresi Linear OLS
+
+OLS (Ordinary Least Squares) atau MKT (Metode Kuadrat Terkecil) adalah metode regresi parametrik yang paling umum digunakan dalam statistika untuk mencari besaran hubungan linear antar peubah. Berikut adalah koefisien persamaan yang dihasilkan oleh regresi OLS. Di bawahnya adalah grafik yang menggambarkan persamaan tersebut.
+
+```{r}
+linReg <- lm(y ~ x)
+coef(linReg)
+```
+
+```{r}
+plot(x, y, col = rgb(1, 0, 0, .5), pch = 16, cex = 0.75,
+     main = "Midwest Dataset",
+     xlab = "% of white population", ylab = "% below poverty line")
+abline(linReg, lwd = 2)
+text(40, 35, "OLS: y = 38.66 - 0.27X", cex = 0.8)
+```
+
+## Algoritma MML
+
+**STEP 1**: Urutkan setiap data sesuai dengan peubah x-nya.
+
+```{r}
+y <- y[order(x)]  # y dirutkan (sesuai dengan urutan dari x)
+x <- sort(x)  # x diurutkan
+
+head(cbind(x, y))  # sehingga hasil akhir tetap berpasangan
+```
+
+**STEP 2**: Data akan dibagi menjadi 3 kelompok, maka carilah panjang yang sesuai untuk tiap kelompok
+
+```{r}
+n <- round(length(x)/3)
+group1 <- 1:n
+group2 <- (n + 1):(length(x) - n)
+group3 <- (length(x) - n + 1):length(x)
+```
+
+```{r, echo = F}
+data.frame(min = c(1, min(group1), min(group2), min(group3)),
+           max = c(length(x), max(group1), max(group2), max(group3)),
+           length = c(length(x), length(group1),
+                      length(group2), length(group3)),
+           row.names = c("All", "Group1", "Group2", "Group3"))
+```
+
+**STEP 3**: Carilah median di setiap x & y per kelompok.
+
+```{r}
+x1 <- median(x[group1])
+y1 <- median(y[group1])
+
+x2 <- median(x[group2])
+y2 <- median(y[group2])
+
+x3 <- median(x[group3])
+y3 <- median(y[group3])
+```
+
+```{r, echo = F}
+data.frame(x = c(x1, x2, x3),
+           y = c(y1, y2, y3),
+           row.names = c("Group 1", "Group 2", "Group 3"))
+```
+
+```{r}
+plot(x, y, col = rgb(0, 0, 0, .5), pch = 16, cex = .5,
+     main = "Garis Resisten MML Akan Berusaha
+Menghubungkan Ketiga Titik Median (warna merah)")
+points(c(x1, x2, x3), c(y1, y2, y3), col = "red", pch = 16)
+```
+
+**STEP 4**: Carilah rataan untuk setiap median-median x dan y.
+
+```{r}
+xbar <- mean(c(x1, x2, x3))
+ybar <- mean(c(y1, y2, y3))
+```
+
+**STEP 5**: Carilah intercept dan slope dari garis MML.
+
+```{r}
+b1 <- (y3 - y1)/(x3 - x1)
+b0 <- ybar - b1*xbar
+```
+
+```{r, echo = F}
+round(data.frame(Intercept = c(coef(linReg)[[1]], b0),
+                 Slope = c(coef(linReg)[[2]], b1),
+                 row.names = c("OLS", "MML")), 4)
+```
+
+```{r}
+plot(x, y, col = rgb(1, 0, 0, .5), pch = 16, cex = .75,
+     main = "Midwest Dataset",
+     xlab = "% of white population", ylab = "% below poverty line")
+
+abline(linReg, lwd = 2)  # visualisasi OLS
+abline(b0, b1, col = "blue", lwd = 2)  # visualisasi MML
+legend("bottomleft", legend = c("OLS", "MML"), col = c("black", "blue"),
+       lty = 1)
+
+text(40, 31.8, "y = 38.66 - 0.27X", cex = .8)
+text(30, 25, "y = 35.99 - 0.25X", cex = .8, col = "blue")
+```
+
+## Visualisasi OLS dan MML Menggunakan GGPlot
+
+geom_point() untuk scatter plot.<br>
+geom_smooth() untuk OLS.<br>
+geom_abline() untuk MML.<br>
+scale_color_manual() untuk meanmpilkan legenda.<br>
+theme_bw() untuk mengubah tema.
+
+```{r}
+library(ggplot2)
+
+ggplot(data = df, mapping = aes(x = percwhite, y = percbelowpoverty)) +
+    geom_point(colour = "red", alpha = .5, size = 1) +
+    geom_smooth(method = "lm", formula = y ~ x, mapping = aes(col = "black"),
+                size = 1.5, se = F) +
+    geom_abline(mapping = aes(intercept = b0, slope = b1, col = "blue"),
+                size = 1.5, show.legend = F) +
+    scale_colour_manual(name = "",
+                        labels = c("OLS", "MML"), 
+                        values = c("black", "blue")) +
+    theme_bw()
+```

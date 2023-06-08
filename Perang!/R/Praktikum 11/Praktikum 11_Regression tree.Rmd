@@ -1,0 +1,64 @@
+---
+title: "Untitled"
+author: "Ahdan Darul Mutaqin"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+Jantung <- read.csv("D:/Praktikum AED/heart_2020_cleaned.csv", header = T)
+```
+
+## membagi data training dan testing
+pada kasus ini data training dibagi dengan perbandingan 80:20 yaitu:
+
+→ data training=80%
+
+→ data testing=20%
+
+```{r cars}
+set.seed(123)
+n <- round(nrow(Jantung)*0.80)
+n
+samp=sample(1:nrow(Jantung),n)
+data.train = Jantung[samp,]
+data.test = Jantung[-samp,]
+dim(data.train)
+dim(data.test)
+```
+
+## Klasifikasi dengan Decision Tree
+Variabel target atau respon adalah HeartDisease. Variabel Prediktornya adalah BMI dan PhysicalHealth. rpart() yang ada pada package rpart merupakan Fungsi yang dapat digunakan untuk memperoleh model pohon klasifikasi. Pada fungsi ini kita harus menambahkan opsi method = ‘class’ sehingga fungsi akan mengenali variabel respon sebagai variabel kategorik dan algoritma rpart (recursive partition) akan menghasilkan pohon klasifikasi.
+Opsi minsplit=30 mengandung pengertian bahwa jika ada node yang berukuran kurang dari 30 amatan maka algoritma dihentikan. Kita pending dulu pembahasan mengenai cp dan akan diskusikan selanjutnya.
+Opsi complexity parameter (cp) pada fungsi rpart() merupakan pengali atau pembobot tingkat kompleksitas pada kriteria yang ingin diminimumkan. Dengan kata lain, kriteria yang ingin diminimumkan adalah
+error + cp * banyaknya split * error rootnode
+
+Jika digunakan cp = 0, maka kita tidak masalah modelnya kompleks, yang penting error-nya kecil.
+
+Semakin besar nilai cp, maka kita semakin kompleks, atau semakin tidak suka dengan model pohon yang kompleks. Kalau kita masukkan cp yang semakin besar, maka kita berharap pohonnya kecil saja. Semakin sederhana. Tapi tentu saja errornya jadi sedikit lebih besar.
+
+Jadi mengatur cp adalah menyeimbangkan antara keinginan mendapatkan model pohon dengan error yang kecil dan pohon yang sederhana.
+```{r pressure, echo=FALSE}
+library(rpart)
+fit <- rpart(HeartDisease~BMI + PhysicalHealth, data = data.train, method = 'class', control=rpart.control(minsplit = 2, cp=0))
+fit
+```
+Hasilnya:
+Rootnode berisi 21 amatan terbagi menjadi dua dengan aturan apakah PhysicalHealth<29 atau PhysicalHealth>=29. Node dengan PhysicalHealth>=29 berisi 2 amatan yaitu BMI < 31.74 dan BMI > 31.74.
+
+node), split, n, loss, yval, (yprob)
+
+nilai 21 adalah n, nilai 1 adalah frekuensi amatan yang salah klasifikasi, No atau Yes atau yval adalah prediksi pada node tersebut yaitu kelas yang dominan, dan (0.95238095 0.04761905) masing-masing adalah proporsi dari "yes" atau "No" sehingga itu yang muncul pada yval.
+```{r}
+library(rpart.plot)
+rpart.plot(fit, extra=4)
+
+
+```
+```{r}
+fit$variable.importance
+```
+Variabel yang paling mempengaruhi di model adalah BMI dibandingkan PhysicalHealth
+```{r}
+r
+```
